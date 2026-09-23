@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 浏览器打开 http://127.0.0.1:2607 。给游戏窗口发按键需要管理员权限，bat 会自己弹授权。
 
-旁边如果有 `python312\python.exe` 就用它，没有就用系统里的 `python`。第一次运行会在 `calib\` 里生成本机配置，那个目录不进仓库。
+旁边如果有 `python312\python.exe` 就用它，没有就用系统里的 `python`。第一次运行会在 `calib\` 里生成本机配置。
 
 ## 关卡坐标
 
