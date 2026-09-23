@@ -1,6 +1,6 @@
-# 记轴本
+# 记轴本 PETE toolkits
 
-明日方舟 PC 端的帧级记轴小工具，窗口标题是 PTFE Toolkits。
+明日方舟 PC 端的帧级记轴小工具
 
 在网页里记下「第几帧干什么」，到点提醒。也可以按轴回放部署、技能和撤退。帧数从费用条尺子读，尺子是另一个项目：[Arknights Cost Bar Ruler](https://github.com/ZeroAd-06/ArknightsCostBarRuler)。
 
