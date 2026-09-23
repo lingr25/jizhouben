@@ -1,0 +1,7 @@
+mss==10.2.0
+opencv-python==5.0.0.93
+numpy==2.5.1
+pywin32==312
+keyboard==0.13.5
+Pillow==12.3.0
+websockets==17.0.1

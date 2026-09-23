@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PTFE Toolkits</title>
+<style>
+  :root{
+    --bg:#eef3f1; --card:#ffffff; --ink:#33424a; --muted:#8ba09b;
+    --accent:#4fb3a0; --accent-soft:#e3f4f0; --accent-deep:#2e8f7e;
+    --amber:#d9a441; --amber-soft:#faf0db;
+    --blue:#6b93b8;  --blue-soft:#e8f0f7;
+    --red:#c96f6f;   --red-soft:#f9e9e9;
+    --line:#e2eae7; --shadow:0 2px 10px rgba(51,66,74,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    min-height:100vh; display:flex; justify-content:center; padding:24px 12px 60px;
+  }
+  .app{width:100%;max-width:660px}
+  header{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;
+         padding:22px 24px;overflow:hidden;border-radius:14px;
+         box-shadow:var(--shadow);
+         background:#fbfdfd url("/static/header_banner.png") right center/cover no-repeat}
+  header h1{font-size:22px;font-weight:600;letter-spacing:2px}
+  header .sub{font-size:12px;color:var(--muted)}
+
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tab-btn{flex:1;background:var(--card);border:1.5px solid var(--line);border-radius:10px;
+           padding:10px 14px;font-size:14px;font-weight:600;color:var(--muted);
+           cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+  .tab-btn.active{background:var(--accent-soft);color:var(--accent-deep);border-color:var(--accent)}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+
+  /* ---- 复现器专用样式 (严格对齐 Reminder 极简审美) ---- */
+  .select-row{display:flex;gap:10px;align-items:center;margin-top:12px;margin-bottom:10px}
+  select.axis-select{flex:1;min-width:0;font-family:inherit;font-size:14px;color:var(--ink);
+                     border:1.5px solid var(--line);border-radius:9px;padding:8px 12px;
+                     background:#fbfdfd;outline:none;transition:.15s}
+  select.axis-select:focus{border-color:var(--accent);background:#fff}
+  .replayer-meta{display:flex;gap:12px;align-items:center;font-size:13px;color:var(--muted);margin-top:10px;margin-bottom:12px;flex-wrap:wrap}
+  .replayer-meta .pill{background:var(--accent-soft);color:var(--accent-deep);padding:3px 10px;border-radius:999px;font-size:12px}
+  .op-card-stream{max-height:380px;overflow-y:auto}
+  .op-card-stream::-webkit-scrollbar{width:6px}
+  .op-card-stream::-webkit-scrollbar-track{background:transparent}
+  .op-card-stream::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  .op-row{display:flex;align-items:center;gap:10px;padding:9px 4px;
+          border-bottom:1px solid var(--line);font-size:14px;transition:.15s}
+  .op-row:last-child{border-bottom:none}
+  .op-row.active{background:var(--amber-soft)}
+  .op-row.done{opacity:.65}
+  .op-row.error{background:var(--red-soft)}
+  .op-f{width:76px;font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent-deep)}
+  .op-pos{width:80px;flex:none;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .op-type{font-size:11.5px;padding:2px 9px;border-radius:999px}
+  .op-type.deploy{background:var(--blue-soft);color:var(--blue)}
+  .op-type.skill{background:var(--amber-soft);color:var(--amber)}
+  .op-type.retreat{background:var(--red-soft);color:var(--red)}
+  .op-type.note{background:#edf2f0;color:var(--muted)}
+  .op-desc{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+
+  .card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);
+        padding:18px 20px;margin-bottom:14px}
+
+  /* ---- 状态面板 ---- */
+  .status-top{display:flex;align-items:center;justify-content:space-between}
+  .frame-now{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;
+             color:var(--accent-deep);line-height:1.1}
+  .frame-now small{font-size:13px;font-weight:400;color:var(--muted);margin-left:6px}
+  .stage{font-size:13px;padding:4px 12px;border-radius:999px;font-weight:600}
+  .stage.idle   {background:var(--blue-soft);color:var(--blue)}
+  .stage.watch  {background:var(--blue-soft);color:var(--blue)}
+  .stage.trigger{background:var(--blue-soft);color:var(--blue)}
+  .stage.brake  {background:var(--amber-soft);color:var(--amber)}
+  .stage.creep  {background:var(--amber-soft);color:var(--amber)}
+  .stage.notify {background:var(--accent-soft);color:var(--accent-deep)}
+  .stage.failed {background:var(--red-soft);color:var(--red)}
+  .status-mid{margin-top:10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+  .status-mid b{color:var(--ink);font-weight:600}
+  .badge{display:inline-flex;align-items:center;gap:7px;font-size:14px;transition:.2s}
+  .badge .slot{width:34px;height:34px;border-radius:50%;flex:none;transition:.2s;
+               display:inline-flex;align-items:center;justify-content:center}
+  .badge img{width:100%;height:100%;border-radius:50%}
+  #rulerBadge{margin-left:auto}      /* 徽章组贴右，靠拢状态灯一侧 */
+  .badge.ok{color:var(--accent-deep)}
+  .badge.bad{color:#b7c2be}
+  .badge.bad .slot{border:2px dashed #b9ccc4;box-sizing:border-box;
+                   background:#f3f7f5}                  /* 离线=虚线空槽位 */
+  .badge.bad .slot img{display:none}   /* 不再置灰虚化，直接留空 */
+  .btns{margin-top:14px;display:flex;gap:10px}
+  button{font-family:inherit;font-size:14px;border:none;border-radius:9px;
+         padding:9px 18px;cursor:pointer;transition:.15s}
+  .btn-main{background:var(--accent);color:#fff}
+  .btn-main:hover{background:var(--accent-deep)}
+  .btn-danger{background:var(--red-soft);color:var(--red)}
+  .btn-danger:hover{background:#f3dcdc}
+  .btn-reset{background:var(--blue-soft);color:var(--blue)}
+  .btn-reset:hover{background:#dbe8f3}
+  .btn-settings{background:var(--accent-soft);color:var(--accent-deep)}
+  .btn-settings:hover{background:#d3ede7}
+  .btn-shutdown{background:#eef1f0;color:var(--muted)}
+  .btn-shutdown:hover{background:#e0e6e4;color:var(--ink)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+
+  /* ---- 滑动开关 ---- */
+  .switch{position:relative;display:inline-block;width:38px;height:22px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;inset:0;background:#d1dbd7;transition:.25s;border-radius:22px}
+  .slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#fff;transition:.25s;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .switch input:checked + .slider{background:var(--accent)}
+  .switch input:checked + .slider:before{transform:translateX(16px)}
+  .toggle-pill{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);user-select:none;cursor:pointer}
+
+  /* ---- 录入 ---- */
+  .form-row{display:flex;gap:10px;margin-bottom:10px}
+  input[type=text],input[type=number]{
+    flex:1;min-width:0;font-family:inherit;font-size:15px;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:9px;padding:9px 12px;
+    background:#fbfdfd;outline:none;transition:.15s}
+  input:focus{border-color:var(--accent);background:#fff}
+  #frame{width:120px;flex:none;font-variant-numeric:tabular-nums}
+  #secs{width:104px;flex:none;font-variant-numeric:tabular-nums}
+  .btn-add{background:var(--accent);color:#fff;flex:none}
+  .btn-add:hover{background:var(--accent-deep)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+  .chip{font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer;
+        background:var(--accent-soft);color:var(--accent-deep);border:none;user-select:none}
+  .chip:hover{background:#d3ede7}
+  .chip.frame{background:var(--blue-soft);color:var(--blue)}
+  .chip.frame:hover{background:#dbe8f3}
+  .chip.edit{background:transparent;color:var(--muted);border:1px dashed var(--line);
+             font-size:11px;padding:3px 9px}
+  .chip-input{font-family:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;
+              border:1.5px solid var(--accent);outline:none;width:110px;
+              background:#fff;color:var(--ink)}
+  .chip .x{margin-left:5px;color:var(--muted);display:none}
+  .chips.editing .chip .x{display:inline}
+  .label{font-size:12px;color:var(--muted);margin:12px 0 2px}
+
+  /* ---- 列表 ---- */
+  #remList{max-height:432px;overflow-y:auto}
+  #remList::-webkit-scrollbar{width:6px}
+  #remList::-webkit-scrollbar-track{background:transparent}
+  #remList::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  #remList:hover::-webkit-scrollbar-thumb{background:#c9d6d1}
+  .rem-row{display:flex;align-items:center;gap:10px;padding:9px 4px;
+           border-bottom:1px solid var(--line);font-size:14px}
+  .rem-row:last-child{border-bottom:none}
+  .rem-frame{width:76px;font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent-deep)}
+  .rem-sec{width:90px;flex:none;font-size:12px;color:var(--muted);
+           font-variant-numeric:tabular-nums}
+  .rem-note{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rem-note.none{color:var(--muted)}
+  .tag{font-size:11.5px;padding:2px 9px;border-radius:999px}
+  .tag.pending{background:var(--blue-soft);color:var(--blue)}
+  .tag.armed  {background:var(--amber-soft);color:var(--amber)}
+  .tag.done   {background:var(--accent-soft);color:var(--accent-deep)}
+  .tag.missed {background:var(--red-soft);color:var(--red)}
+  .rem-del{background:transparent;color:var(--muted);font-size:16px;padding:4px 12px}
+  .rem-del:hover{color:var(--red)}
+  .empty{font-size:13px;color:var(--muted);text-align:center;padding:10px 0 14px}
+  .empty img{display:block;height:130px;margin:0 auto 8px}
+  #remList:has(.empty){max-height:none}
+
+  footer{text-align:center;margin:2px 0 0;font-size:15px;letter-spacing:1px;
+         color:var(--muted);opacity:.8;
+         font-family:"Segoe Script","Brush Script MT","Lucida Handwriting",cursive}
+
+  /* ---- 事件流 ---- */
+  .log{font-size:12px;color:var(--muted);line-height:1.9;max-height:130px;
+       overflow-y:auto;font-variant-numeric:tabular-nums}
+  .log b{color:var(--accent-deep);font-weight:600}
+
+  /* ---- 到点弹窗 ---- */
+  #overlay{position:fixed;inset:0;background:rgba(238,243,241,.86);
+           backdrop-filter:blur(4px);display:none;align-items:center;
+           justify-content:center;z-index:99;cursor:pointer}
+  #overlay.show{display:flex}
+  .pop{background:#fff;border-radius:18px;box-shadow:0 10px 40px rgba(46,143,126,.18);
+       padding:38px 52px;text-align:center;max-width:480px;animation:pop .25s ease}
+  @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+  .pop .left{font-size:15px;color:var(--amber);font-weight:600}
+  .pop .left b{font-size:34px;font-variant-numeric:tabular-nums;margin:0 4px}
+  .pop .note{font-size:30px;font-weight:700;margin-top:14px;line-height:1.4;word-break:break-all}
+  .pop .target{font-size:13px;color:var(--muted);margin-top:16px}
+
+  /* ---- 实操快速加的确认弹窗 ---- */
+  #confirm{position:fixed;inset:0;background:rgba(51,66,74,.25);
+           display:none;align-items:center;justify-content:center;z-index:98}
+  #confirm.show{display:flex}
+  .cpop{background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(51,66,74,.16);
+        padding:24px 32px;text-align:center;animation:pop .2s ease}
+  .cpop .ct{font-size:15px;margin-bottom:6px}
+  .cpop .ct b{color:var(--accent-deep);font-variant-numeric:tabular-nums}
+  .cpop .cs{font-size:12.5px;color:var(--muted);margin-bottom:16px}
+  .cpop .cb{display:flex;gap:10px;justify-content:center}
+
+  /* ---- 设置模态弹窗 ---- */
+  .modal-ov{position:fixed;inset:0;background:rgba(51,66,74,.35);backdrop-filter:blur(3px);
+            display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+  .modal-ov.show{display:flex}
+  .modal-card{background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(46,143,126,.2);
+              width:100%;max-width:540px;max-height:90vh;display:flex;flex-direction:column;
+              animation:pop .2s ease;overflow:hidden}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;
+              border-bottom:1px solid var(--line)}
+  .modal-head h2{font-size:17px;font-weight:600;color:var(--ink)}
+  .modal-close{background:transparent;color:var(--muted);font-size:22px;cursor:pointer;padding:0 6px}
+  .modal-close:hover{color:var(--ink)}
+  .modal-body{padding:18px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+  .setting-group{display:flex;flex-direction:column;gap:10px}
+  .setting-group-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .setting-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+  .setting-title{font-size:14px;font-weight:600;color:var(--ink)}
+  .setting-desc{font-size:12px;color:var(--muted);margin-top:2px}
+  .hk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hk-item{background:#fbfdfd;border:1px solid var(--line);border-radius:9px;padding:8px 12px;
+           display:flex;flex-direction:column;gap:4px}
+  .hk-label{font-size:11.5px;color:var(--muted)}
+  .hk-input{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:13px;
+            font-weight:600;text-align:center;text-transform:uppercase;color:var(--accent-deep);
+            background:#fff;cursor:pointer;outline:none;transition:.15s}
+  .hk-input:focus,.hk-input.recording{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep)}
+  .hk-input.conflict{border-color:#e05d5d;background:#fdeeee;color:#b33737}
+  .modal-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;
+              gap:10px;background:#fbfdfd}
+
+  /* ---- 提示条 ---- */
+  #toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);
+         background:#fff;border-radius:10px;box-shadow:var(--shadow);
+         padding:10px 22px;font-size:14px;display:none;z-index:100}
+
+  /* ---- 安全关闭后的满屏提示 ---- */
+  #shutdownOv{position:fixed;inset:0;background:var(--bg);display:none;
+              align-items:center;justify-content:center;z-index:101;
+              flex-direction:column;gap:8px;text-align:center}
+  #shutdownOv.show{display:flex}
+  #shutdownOv .big{font-size:24px;font-weight:700;color:var(--ink)}
+  #shutdownOv .small{font-size:14px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>PTFE Toolkits</h1>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnReminder">记轴盯梢 (Reminder)</button>
+    <button class="tab-btn" id="tabBtnReplayer">PTFE 战术复现 (Replayer)</button>
+    <button class="tab-btn" id="tabBtnSettings">系统设置 (Settings)</button>
+  </div>
+
+  <!-- 1. 记轴盯梢 Tab -->
+  <div class="tab-panel active" id="panelReminder">
+    <div class="card">
+      <div class="status-top">
+        <div class="frame-now"><span id="curFrame">--</span><small>当前帧</small></div>
+        <div class="stage idle" id="stage">待机</div>
+      </div>
+      <div class="status-mid">
+        <span id="armedInfo">暂无盯梢</span>
+        <span class="badge" id="rulerBadge"><span class="slot"><img src="/static/badge_ruler.png" alt=""></span>尺子</span>
+        <span class="badge" id="adminBadge"><span class="slot"><img src="/static/badge_admin.png" alt=""></span>权限</span>
+      </div>
+      <div class="btns">
+        <button class="btn-main" id="btnStart">开始盯梢</button>
+        <button class="btn-danger" id="btnStop">停止</button>
+        <button class="btn-reset" id="btnReset">重置</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="form-row">
+        <input type="text" id="secs" placeholder="秒">
+        <input type="text" id="frame" placeholder="帧">
+        <input type="text" id="note" placeholder="留言" maxlength="200">
+        <button class="btn-add" id="btnAdd">记下</button>
+      </div>
+      <div class="label">快捷填入（秒/帧通用）</div>
+      <div class="chips" id="frameChips"></div>
+      <div class="label">留言 <button class="chip edit" id="editNotes">管理</button></div>
+      <div class="chips" id="noteChips"></div>
+    </div>
+
+    <div class="card">
+      <div id="remList"></div>
+    </div>
+
+    <div class="card" id="logCard" style="display:none">
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <!-- 2. 战斗复现器 Tab -->
+  <div class="tab-panel" id="panelReplayer">
+    <!-- 实机全自动录轴卡片 -->
+    <div class="card">
+      <div class="status-top">
+        <div>
+          <strong style="font-size:15px;color:var(--ink)">实机全自动录轴</strong>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">暂停下打一把游戏，自动吸附地块与朝向生成标准轴</div>
+        </div>
+        <div class="stage idle" id="recStatusBadge">未录制</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px;align-items:center;position:relative">
+        <div style="flex:1;position:relative">
+          <input type="text" id="recLevelInput" value="1-7" data-level-id="obt/main/level_main_01-07" placeholder="🔍 搜索关卡 (如: 1-7, 7-16, 暴君, H8-4)" autocomplete="off">
+          <div id="recSearchDropdown" style="display:none;position:absolute;left:0;right:0;top:100%;margin-top:4px;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:220px;overflow-y:auto;z-index:999">
+          </div>
+        </div>
+        <button class="btn-main" id="btnStartRecord" style="flex:none">开启录制</button>
+        <button class="btn-danger" id="btnStopRecord" style="display:none;flex:none">停止保存</button>
+      </div>
+      <div id="recLiveStream" style="display:none;margin-top:10px;padding:8px 12px;background:#fbfdfd;border:1px dashed var(--line);border-radius:8px;font-size:12.5px;color:var(--muted)">
+        <span>实时捕获流: <b id="recCountText" style="color:var(--accent-deep)">0</b> 条操作</span>
+        <div id="recLastOpText" style="margin-top:3px;color:var(--ink);font-weight:600">等待手势交互...</div>
+      </div>
+    </div>
+
+    <!-- 战斗复现执行卡片 -->
+    <div class="card">
+      <div class="status-top">
+        <div class="frame-now"><span id="repCurFrame">--</span><small>当前帧</small></div>
+        <div class="stage idle" id="repStatus">空闲待机</div>
+      </div>
+      <div class="select-row">
+        <select class="axis-select" id="repAxisSelect">
+          <option value="">-- 正在扫描轴文件 --</option>
+        </select>
+        <button class="btn-reset" id="btnRefreshAxes" style="flex:none;padding:8px 16px">刷新</button>
+      </div>
+      <div class="replayer-meta">
+        <span class="pill" id="repLevelId">关卡: -</span>
+        <span class="pill" id="repOpsCount">指令数: 0</span>
+        <div class="toggle-pill" title="只演练计划，不向游戏注入键鼠输入">
+          <label class="switch">
+            <input type="checkbox" id="repDryRun">
+            <span class="slider"></span>
+          </label>
+          <span>仿真模拟 (Dry-Run)</span>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:4px;margin-left:auto">
+          倍速:
+          <select id="repSpeed" style="padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:#fff">
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+          </select>
+        </span>
+      </div>
+      <div class="btns">
+        <button class="btn-main" id="btnStartReplay">启动战斗复现</button>
+        <button class="btn-danger" id="btnStopReplay">紧急停止</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <strong style="font-size:14px;color:var(--ink)">战斗指令流 (Op Stream)</strong>
+        <span style="font-size:12px;color:var(--muted)" id="repOpProgress">0 / 0</span>
+      </div>
+      <div class="op-card-stream" id="repOpList">
+        <div class="empty">请先选择一个轴文件</div>
+      </div>
+    </div>
+
+    <!-- 复现运行日志卡片 -->
+    <div class="card" id="repLogCard" style="display:none">
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px">复现运行日志</div>
+      <div class="log" id="repLog"></div>
+    </div>
+  </div>
+
+  <!-- 3. 系统设置 Tab -->
+  <div class="tab-panel" id="panelSettings">
+    <!-- 全局战术自动化配置 -->
+    <div class="card">
+      <strong style="font-size:15px;color:var(--ink)">战术自动化设置</strong>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:14px">配置记轴盯梢与 PTFE 实机录轴的通用触发逻辑</div>
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line)">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--ink)">开局自动暂停</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">进关开战瞬间自动暂停（冻结第 0~2 帧，盯梢与录轴通用）</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="cfgOpening">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 过帧与全局热键配置 -->
+    <div class="card">
+      <strong style="font-size:15px;color:var(--ink)">过帧与原生热键绑定</strong>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:14px">点击输入框后按下键盘按键即可重新绑定</div>
+      
+      <div class="hk-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="hk-item" style="background:#fbfdfd;border:1px solid var(--line);border-radius:9px;padding:10px 12px">
+          <span class="hk-label" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">前进 16ms (2x速 1帧 / 1x速 0.5帧)</span>
+          <input type="text" class="hk-input" id="hk16" readonly style="width:100%;box-sizing:border-box;text-align:center;font-weight:600;background:#fff">
+        </div>
+        <div class="hk-item" style="background:#fbfdfd;border:1px solid var(--line);border-radius:9px;padding:10px 12px">
+          <span class="hk-label" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">前进 33ms (2x速 2帧 / 1x速 1帧)</span>
+          <input type="text" class="hk-input" id="hk33" readonly style="width:100%;box-sizing:border-box;text-align:center;font-weight:600;background:#fff">
+        </div>
+        <div class="hk-item" style="background:#fbfdfd;border:1px solid var(--line);border-radius:9px;padding:10px 12px">
+          <span class="hk-label" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">前进 166ms (2x速 10帧 / 1x速 5帧)</span>
+          <input type="text" class="hk-input" id="hk166" readonly style="width:100%;box-sizing:border-box;text-align:center;font-weight:600;background:#fff">
+        </div>
+        <div class="hk-item" style="background:#fbfdfd;border:1px solid var(--line);border-radius:9px;padding:10px 12px">
+          <span class="hk-label" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">暂停选中干员 (触控穿透)</span>
+          <input type="text" class="hk-input" id="hkSelect" readonly style="width:100%;box-sizing:border-box;text-align:center;font-weight:600;background:#fff">
+        </div>
+        <div class="hk-item" style="background:#fbfdfd;border:1px solid var(--line);border-radius:9px;padding:10px 12px">
+          <span class="hk-label" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">游戏原生暂停键</span>
+          <input type="text" class="hk-input" id="hkPause" readonly style="width:100%;box-sizing:border-box;text-align:center;font-weight:600;background:#fff">
+        </div>
+        <div class="hk-item" style="background:#fbfdfd;border:1px solid var(--line);border-radius:9px;padding:10px 12px">
+          <span class="hk-label" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">游戏原生解暂键</span>
+          <input type="text" class="hk-input" id="hkUnpause" readonly style="width:100%;box-sizing:border-box;text-align:center;font-weight:600;background:#fff">
+        </div>
+      </div>
+      <div class="btns" style="margin-top:14px;justify-content:flex-end">
+        <button class="btn-reset" id="btnResetCfg">恢复默认</button>
+        <button class="btn-main" id="btnSaveCfg">保存热键</button>
+      </div>
+    </div>
+
+    <!-- 系统运维与安全退出 -->
+    <div class="card">
+      <strong style="font-size:15px;color:var(--ink)">系统运维与控制</strong>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:14px">安全释放按键 Hook、退出 BarRuler 尺子进程并关闭服务</div>
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+        <div>
+          <div style="font-size:13.5px;font-weight:600;color:var(--ink)">一键安全关闭</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">停止所有引擎、关闭尺子并安全退出终端窗口</div>
+        </div>
+        <button class="btn-shutdown" id="btnShutdown" style="background:var(--red-soft);color:var(--red);font-weight:600">安全关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>by 灵儿lingr & Antigravity</footer>
+</div>
+
+<!-- 到点弹窗 -->
+<div id="overlay">
+  <div class="pop">
+    <div class="left">还差<b id="popLeft">-</b>帧</div>
+    <div class="note" id="popNote"></div>
+    <div class="target" id="popTarget"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="shutdownOv">
+  <div class="big">记轴本已全部关闭</div>
+  <div class="small">盯梢、尺子、终端都已退出 · 这个页面可以直接关掉</div>
+</div>
+
+<div id="confirm">
+  <div class="cpop">
+    <div class="ct" id="confirmTitle"></div>
+    <div class="cs">写入记轴本保留这条提醒吗？</div>
+    <div class="cb">
+      <button class="btn-main" id="cKeep">保留</button>
+      <button class="btn-danger" id="cOnce">仅此一次</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const STAGE={idle:"待机",trigger:"等待开局",watch:"监控中",brake:"减速暂停",creep:"逐帧逼近",
+             notify:"已就位",failed:"已停止"};
+const TAG={pending:"等待",done:"已到",missed:"错过"};
+let presets={notes:[],frame_deltas:[]};
+let currentCfg={
+  opening_trigger:true,
+  unpause_key:"esc",
+  pause_key:"space",
+  direct_step:true,
+  hotkeys:{step_16ms:"y",step_33ms:"r",step_166ms:"t",pause_select:"w"}
+};
+let editMode=false, lastNotifyKey=null, curFrames=null, audioCtx=null;
+let starting=false;
+
+function toast(msg,ms=2600){
+  const t=$("toast"); t.textContent=msg; t.style.display="block";
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",ms);
+}
+async function api(path,opts){
+  const r=await fetch(path,opts);
+  let d={}; try{d=await r.json()}catch(e){}
+  if(!r.ok) throw new Error(d.message||d.error||("HTTP "+r.status));
+  return d;
+}
+function beep(){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    [[880,0],[1174,.18]].forEach(([f,d])=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.type="sine"; o.frequency.value=f;
+      g.gain.setValueAtTime(.001,audioCtx.currentTime+d);
+      g.gain.exponentialRampToValueAtTime(.25,audioCtx.currentTime+d+.02);
+      g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+d+.5);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(audioCtx.currentTime+d); o.stop(audioCtx.currentTime+d+.55);
+    });
+  }catch(e){}
+}
+
+/* ---- 配置管理 ---- */
+async function loadConfig(){
+  try{
+    const d=await api("/api/config");
+    currentCfg=d;
+    $("cfgOpening").checked=!!d.opening_trigger;
+    $("hk16").value=(d.hotkeys&&d.hotkeys.step_16ms)|| "y";
+    $("hk33").value=(d.hotkeys&&d.hotkeys.step_33ms)|| "r";
+    $("hk166").value=(d.hotkeys&&d.hotkeys.step_166ms)|| "t";
+    $("hkSelect").value=(d.hotkeys&&d.hotkeys.pause_select)|| "w";
+    $("hkPause").value=d.pause_key|| "space";
+    $("hkUnpause").value=d.unpause_key|| "esc";
+    markKeyConflicts();
+  }catch(e){}
+}
+
+async function saveCurrentConfig(cfg){
+  try{
+    const d=await api("/api/config",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(cfg)
+    });
+    currentCfg=d.config;
+    $("cfgOpening").checked=!!currentCfg.opening_trigger;
+    toast("配置已保存生效");
+  }catch(e){toast(e.message)}
+}
+
+$("cfgOpening").onchange=async()=>{
+  const val=$("cfgOpening").checked;
+  currentCfg.opening_trigger=val;
+  await saveCurrentConfig({opening_trigger:val});
+  toast("开局自动暂停："+(val?"已开启":"已关闭"));
+};
+
+/* ---- 按键录入处理 ---- */
+function setupKeyRecorder(inputEl){
+  inputEl.onfocus=()=>{
+    inputEl.classList.add("recording");
+    inputEl.dataset.orig=inputEl.value;
+    inputEl.value="[按键中...]";
+  };
+  inputEl.onblur=()=>{
+    inputEl.classList.remove("recording");
+    if(inputEl.value==="[按键中...]") inputEl.value=inputEl.dataset.orig||"";
+  };
+  inputEl.onkeydown=e=>{
+    e.preventDefault();
+    let key=e.key.toLowerCase();
+    if(key===" ") key="space";
+    else if(key==="escape") key="esc";
+    else if(key==="arrowup") key="up";
+    else if(key==="arrowdown") key="down";
+    else if(key==="arrowleft") key="left";
+    else if(key==="arrowright") key="right";
+    inputEl.value=key;
+    inputEl.classList.remove("recording");
+    inputEl.blur();
+    markKeyConflicts();
+  };
+}
+["hk16","hk33","hk166","hkSelect","hkPause","hkUnpause"].forEach(id=>{
+  setupKeyRecorder($(id));
+});
+
+/* ---- 键位冲突检测：严格禁止任何按键重复（包括暂停键与解暂键） ---- */
+const HK_FIELDS=[
+  ["hk16","前进16ms"],["hk33","前进33ms"],["hk166","前进166ms"],
+  ["hkSelect","暂停选中"],["hkPause","游戏原生暂停键"],["hkUnpause","游戏原生解暂键"]
+];
+function markKeyConflicts(){
+  const items=HK_FIELDS.map(([id,label])=>({id,label,val:$(id).value.trim().toLowerCase()}));
+  const bad=new Set();
+  for(let i=0;i<items.length;i++){
+    for(let j=i+1;j<items.length;j++){
+      const a=items[i],b=items[j];
+      if(!a.val||!b.val||a.val!==b.val) continue;
+      bad.add(a.id);
+      bad.add(b.id);
+    }
+  }
+  HK_FIELDS.forEach(([id])=>$(id).classList.toggle("conflict",bad.has(id)));
+  return [...bad];
+}
+
+$("btnSaveCfg").onclick=async()=>{
+  const conflicts=markKeyConflicts();
+  if(conflicts.length){
+    const pVal=$("hkPause").value.trim().toLowerCase();
+    const uVal=$("hkUnpause").value.trim().toLowerCase();
+    if(pVal && uVal && pVal===uVal){
+      toast("⚠️ 键位冲突警告：游戏原生「解暂键」与「暂停键」不能设为同一个键！\n（微秒过帧依赖双键交叠，同键会导致游戏引擎来不及识别抬起而丢掉暂停）", 6000);
+    }else{
+      toast("键位冲突：请先解决标红的按键（同一按键不能绑定两个功能）", 4000);
+    }
+    return;
+  }
+  const newCfg={
+    opening_trigger:$("cfgOpening").checked,
+    pause_key:$("hkPause").value.trim().toLowerCase()||"space",
+    unpause_key:$("hkUnpause").value.trim().toLowerCase()||"esc",
+    hotkeys:{
+      step_16ms:$("hk16").value.trim().toLowerCase()||"y",
+      step_33ms:$("hk33").value.trim().toLowerCase()||"r",
+      step_166ms:$("hk166").value.trim().toLowerCase()||"t",
+      pause_select:$("hkSelect").value.trim().toLowerCase()||"w"
+    }
+  };
+  await saveCurrentConfig(newCfg);
+  $("settingsModal").classList.remove("show");
+};
+
+$("btnResetCfg").onclick=()=>{
+  $("cfgOpening").checked=true;
+  $("cfgDirect").checked=true;
+  $("hk16").value="y";
+  $("hk33").value="r";
+  $("hk166").value="t";
+  $("hkSelect").value="w";
+  $("hkPause").value="space";
+  $("hkUnpause").value="esc";
+  markKeyConflicts();
+};
+
+/* ---- 状态轮询 ---- */
+async function pollState(){
+  try{
+    const s=await api("/api/state");
+    curFrames=s.frames;
+    $("curFrame").textContent=s.frames==null?"--":s.frames;
+    const st=$("stage");
+    st.className="stage "+s.stage;
+    st.textContent=STAGE[s.stage]||s.stage;
+    $("armedInfo").innerHTML=s.armed
+      ? `盯梢 <b>f=${s.armed.frame}</b>${secStr(s.armed.frame)}`
+        + `${s.armed.note?(" · "+esc(s.armed.note)):""}`
+        + (s.waiting_next?` · <b>这局已过，等下一局开战</b>`
+           :(s.remaining!=null?` · 还差 <b>${s.remaining}</b> 帧`:""))
+      : (s.engine_alive?"盯梢中":"暂无盯梢");
+    setBadge("rulerBadge",s.ruler_online);
+    setBadge("adminBadge",s.is_admin);
+    $("btnStart").disabled=starting||!!s.engine_alive;
+    $("btnStart").textContent=starting?"启动中…":"开始盯梢";
+    $("btnStop").disabled=starting||!s.engine_alive;
+    $("btnReset").disabled=starting;
+    $("btnShutdown").disabled=starting;
+    renderLog(s.events||[]);
+    if(s.stage==="notify"&&s.armed){
+      const key=s.armed.id+"@"+s.armed.frame;
+      if(lastNotifyKey!==key){
+        lastNotifyKey=key;
+        showPop(s.armed,s.remaining);
+      }
+    }
+  }catch(e){}
+}
+function setBadge(id,ok){$(id).className="badge "+(ok?"ok":"bad")}
+let lastLogHtml="";
+function renderLog(ev){
+  $("logCard").style.display=ev.length?"":"none";
+  const html=ev.map(([t,m])=>`<div>${esc(t)}  ${boldIf(m)}</div>`).join("");
+  if(html===lastLogHtml) return;
+  lastLogHtml=html;
+  const el=$("log");
+  const stick=el.scrollHeight-el.scrollTop-el.clientHeight<24;
+  el.innerHTML=html;
+  if(stick) el.scrollTop=el.scrollHeight;
+}
+function boldIf(m){
+  m=esc(m);
+  return m.startsWith("==")||m.includes("到点")?`<b>${m}</b>`:m;
+}
+
+/* ---- 到点弹窗 ---- */
+function showPop(armed,remaining){
+  $("popLeft").textContent=remaining==null?"?":remaining;
+  $("popNote").textContent=armed.note||"(无留言)";
+  $("popTarget").textContent="目标帧 f="+armed.frame+secStr(armed.frame);
+  $("overlay").classList.add("show");
+  beep();
+}
+$("overlay").onclick=()=>$("overlay").classList.remove("show");
+
+/* ---- 实操快速加的确认 ---- */
+let confirmRem=null;
+function showConfirm(rem){
+  confirmRem=rem;
+  $("confirmTitle").innerHTML=`已插入盯梢队列 · f=<b>${rem.frame}</b>`;
+  $("confirm").classList.add("show");
+}
+function closeConfirm(){$("confirm").classList.remove("show");confirmRem=null;}
+$("cKeep").onclick=closeConfirm;
+$("confirm").onclick=e=>{if(e.target.id==="confirm")closeConfirm();};
+$("cOnce").onclick=async()=>{
+  const rem=confirmRem; closeConfirm();
+  if(!rem) return;
+  try{await api("/api/reminders/"+rem.id,{method:"DELETE"});
+    toast("仅此一次，触发后不留档"); pollReminders();}
+  catch(e){toast(e.message)}
+};
+
+/* ---- 帧数解析 ---- */
+function parseFrame(v){
+  v=String(v).trim();
+  let m=v.match(/^[+\uFF0B]\s*(\d+(?:\.\d+)?)\s*(s|\u79D2)$/i);
+  if(m){
+    if(curFrames==null) return {err:"尺子读不到当前帧，用不了相对秒数"};
+    return {frame:curFrames+Math.round(parseFloat(m[1])*30)};
+  }
+  m=v.match(/^[+\uFF0B]\s*(\d+)$/);
+  if(m){
+    if(curFrames==null) return {err:"尺子读不到当前帧，用不了相对帧"};
+    return {frame:curFrames+parseInt(m[1],10)};
+  }
+  if(/^\d+$/.test(v)) return {frame:parseInt(v,10)};
+  return {err:"目标帧填非负整数，或用 +5s / +150"};
+}
+function secStr(f){
+  const s=Math.floor(f/30), r=f%30;
+  return r?("（"+s+"秒"+r+"帧）"):("（"+s+"秒）");
+}
+function frameBase(){
+  const v=$("frame").value.trim();
+  return /^\d+$/.test(v)?parseInt(v,10):(curFrames||0);
+}
+
+/* ---- 预制输入 ---- */
+function renderChips(){
+  const fc=$("frameChips");
+  fc.innerHTML="";
+  mkChip(fc,"当前帧","frame",()=>{ if(curFrames!=null){
+    $("secs").value="";
+    $("frame").value=curFrames; } });
+  presets.frame_deltas.forEach(d=>{
+    mkChip(fc,(d%30===0?("+"+(d/30)+"s"):("+"+d+"帧")),"frame",()=>{
+      $("frame").value=frameBase()+d;
+    });
+  });
+  const nc=$("noteChips");
+  nc.innerHTML="";
+  nc.classList.toggle("editing",editMode);
+  presets.notes.forEach((n,i)=>{
+    const c=mkChip(nc,n,"",()=>{ if(editMode) return; $("note").value=n; });
+    if(editMode){
+      const x=document.createElement("span");
+      x.className="x"; x.textContent="×";
+      x.onclick=e=>{e.stopPropagation();
+        presets.notes.splice(i,1); savePresets();};
+      c.appendChild(x);
+    }
+  });
+  if(editMode) mkChip(nc,"+","",function(){beginAddPreset(this);});
+}
+function mkChip(box,txt,cls,fn){
+  const b=document.createElement("button");
+  b.className="chip"+(cls?" "+cls:"");
+  b.textContent=txt; b.onclick=fn; box.appendChild(b);
+  return b;
+}
+function beginAddPreset(plus){
+  const inp=document.createElement("input");
+  inp.type="text"; inp.className="chip-input"; inp.placeholder="新留言";
+  inp.maxLength=40;
+  let done=false;
+  const finish=commit=>{
+    if(done) return; done=true;
+    const v=inp.value.trim();
+    if(commit&&v&&!presets.notes.includes(v)){presets.notes.push(v); savePresets();}
+    else if(commit&&v){toast("已有这条"); renderChips();}
+    else renderChips();
+  };
+  inp.onkeydown=e=>{
+    if(e.key==="Enter"){e.preventDefault();finish(true);}
+    if(e.key==="Escape")finish(false);
+  };
+  inp.onblur=()=>finish(true);
+  plus.replaceWith(inp); inp.focus();
+}
+async function savePresets(){
+  try{
+    const d=await api("/api/presets",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(presets)});
+    presets=d.presets; renderChips();
+  }catch(e){toast(e.message)}
+}
+$("editNotes").onclick=()=>{editMode=!editMode;
+  $("editNotes").textContent=editMode?"完成":"管理"; renderChips();};
+
+/* ---- 提醒列表 ---- */
+async function pollReminders(){
+  try{
+    const d=await api("/api/reminders");
+    const s=await api("/api/state").catch(()=>null);
+    const armedId=s&&s.armed?s.armed.id:null;
+    const box=$("remList");
+    if(!d.reminders.length){
+      box.innerHTML='<div class="empty"><img src="/static/empty_state.png" alt="">还没有记录</div>';
+      return;
+    }
+    box.innerHTML="";
+    d.reminders.forEach(r=>{
+      const row=document.createElement("div");
+      row.className="rem-row";
+      const st=r.id===armedId?"armed":(r.state in TAG?r.state:"pending");
+      const noteHtml=r.note
+        ? esc(r.note)
+        : '<span class="none">（无留言）</span>';
+      row.innerHTML=
+        `<span class="rem-frame">f=${r.frame}</span>`+
+        `<span class="rem-sec">${secStr(r.frame)}</span>`+
+        `<span class="rem-note">${noteHtml}</span>`+
+        `<span class="tag ${st}">${st==="armed"?"盯梢中":TAG[st]}</span>`;
+      const del=document.createElement("button");
+      del.className="rem-del"; del.textContent="×";
+      del.onclick=async()=>{
+        try{await api("/api/reminders/"+r.id,{method:"DELETE"});
+          toast("已删除"); pollReminders();}catch(e){toast(e.message)}
+      };
+      row.appendChild(del);
+      box.appendChild(row);
+    });
+  }catch(e){}
+}
+
+/* ---- 操作 ---- */
+$("btnAdd").onclick=async()=>{
+  const sv=$("secs").value.trim(), fv=$("frame").value.trim();
+  let total=0;
+  if(!sv && !fv){
+    if(curFrames==null) return toast("尺子未读到当前帧，请手动输入秒或帧");
+    total=curFrames;
+  } else {
+    if(sv){
+      if(!/^\d+(?:\.\d+)?$/.test(sv)) return toast("秒填非负数，如 2 或 2.5");
+      total+=Math.round(parseFloat(sv)*30);
+    }
+    if(fv){
+      const p=parseFrame(fv);
+      if(p.err) return toast(p.err);
+      total+=p.frame;
+    }
+  }
+  try{
+    const d=await api("/api/reminders",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({frame:total,note:$("note").value.trim()})});
+    $("note").value="";
+    pollReminders();
+    toast("已记下 f="+total+secStr(total));
+    $("frame").focus(); $("frame").select();
+    if(d.injected) showConfirm(d.reminder);
+  }catch(e){toast(e.message)}
+};
+$("note").addEventListener("keydown",e=>{if(e.key==="Enter")$("btnAdd").click();});
+$("frame").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("note").focus();}});
+$("secs").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("frame").focus();}});
+$("btnStart").onclick=async()=>{
+  if(starting) return;
+  starting=true; toast("正在启动…");
+  try{const d=await api("/api/engine/start",{method:"POST"});
+    toast(d.message,4000);}catch(e){toast(e.message,4000)}
+  finally{starting=false;}
+};
+$("btnStop").onclick=async()=>{
+  try{const d=await api("/api/engine/abort",{method:"POST"});
+    toast(d.message);}catch(e){toast(e.message)}
+};
+$("btnReset").onclick=async()=>{
+  try{
+    const d=await api("/api/engine/reset",{method:"POST"});
+    toast(d.message);
+    renderLog([]);
+    lastLogHtml="";
+    pollReminders();
+    pollState();
+  }catch(e){toast(e.message)}
+};
+$("btnShutdown").onclick=()=>{
+  if(!confirm("确定安全关闭吗？\n将依次停止盯梢、关闭尺子、退出记轴本（终端窗口也会关掉）")) return;
+  $("btnShutdown").disabled=true;
+  api("/api/shutdown",{method:"POST"})
+    .then(d=>finishShutdown(d.message))
+    .catch(()=>finishShutdown("连接已断，应该已经关掉了"));
+};
+function finishShutdown(msg){
+  (window.__polls||[]).forEach(clearInterval);
+  $("shutdownOv").classList.add("show");
+  try{window.close();}catch(e){}
+}
+
+function esc(s){return String(s).replace(/[&<>"']/g,
+  c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+(async()=>{
+  try{presets=await api("/api/presets")}catch(e){}
+  await loadConfig();
+  renderChips(); pollReminders();
+  window.__polls=[
+    setInterval(pollState,150),
+    setInterval(pollReminders,1500),
+    setInterval(pollReplayerState,250)
+  ];
+})();
+
+/* ---- 三大 Tab 导航切换 ---- */
+function switchTab(targetTab, targetPanel){
+  ["tabBtnReminder","tabBtnReplayer","tabBtnSettings"].forEach(id=>$(id).classList.remove("active"));
+  ["panelReminder","panelReplayer","panelSettings"].forEach(id=>$(id).classList.remove("active"));
+  $(targetTab).classList.add("active");
+  $(targetPanel).classList.add("active");
+}
+
+$("tabBtnReminder").onclick=()=>{
+  switchTab("tabBtnReminder","panelReminder");
+};
+$("tabBtnReplayer").onclick=()=>{
+  switchTab("tabBtnReplayer","panelReplayer");
+  loadReplayerAxes();
+};
+$("tabBtnSettings").onclick=()=>{
+  switchTab("tabBtnSettings","panelSettings");
+  loadConfig();
+};
+
+/* ---- 复现器 (Replayer) 前端交互 ---- */
+let currentReplayerAxes=[];
+let currentAxisDetail=null;
+
+async function loadReplayerAxes(){
+  try{
+    const d=await api("/api/replayer/axes");
+    currentReplayerAxes=d.axes||[];
+    const sel=$("repAxisSelect");
+    if(!currentReplayerAxes.length){
+      sel.innerHTML='<option value="">-- 未找到可用轴文件 --</option>';
+      return;
+    }
+    sel.innerHTML='<option value="">-- 请选择轴文件 ('+currentReplayerAxes.length+'个) --</option>';
+    currentReplayerAxes.forEach(ax=>{
+      const opt=document.createElement("option");
+      opt.value=ax.path;
+      opt.textContent=`[${ax.category}] ${ax.filename} (${ax.level_id||'通用'} · ${ax.ops_count}条 · ${ax.mtime_str.split(' ')[0]})`;
+      sel.appendChild(opt);
+    });
+    if(currentReplayerAxes.length>0){
+      sel.selectedIndex=1;
+      loadSelectedAxis();
+    }
+  }catch(e){toast("加载轴列表失败: "+e.message)}
+}
+
+async function loadSelectedAxis(){
+  const p=$("repAxisSelect").value;
+  if(!p) return;
+  try{
+    const d=await api("/api/replayer/detail?path="+encodeURIComponent(p));
+    currentAxisDetail=d;
+    $("repLevelId").textContent="关卡: "+(d.level_id||"通用");
+    $("repOpsCount").textContent="指令数: "+(d.ops?d.ops.length:0);
+    renderReplayerOps(d.ops||[]);
+  }catch(e){toast("解析轴详情失败: "+e.message)}
+}
+
+function renderReplayerOps(ops){
+  const box=$("repOpList");
+  if(!ops.length){
+    box.innerHTML='<div class="empty">该轴内暂无操作指令</div>';
+    $("repOpProgress").textContent="0 / 0";
+    return;
+  }
+  $("repOpProgress").textContent=`0 / ${ops.length}`;
+  box.innerHTML="";
+  ops.forEach((op,idx)=>{
+    const row=document.createElement("div");
+    row.className="op-row";
+    row.id="opRow_"+idx;
+    const typeCls=(op.op||"deploy").toLowerCase();
+    const typeNameMap={deploy:"部署",skill:"技能",retreat:"撤退",note:"提醒"};
+    const typeLabel=typeNameMap[typeCls]||op.op;
+
+    const s=Math.floor(op.f/30);
+    const r=op.f%30;
+    const secStr=s===0&&r===0?"(0秒)":(r===0?`(${s}秒)`:`(${s}秒${r}帧)`);
+
+    const coordStr=op.col>=0?`地块(${op.col},${op.row})`:"";
+    const slotStr=op.slot?`卡槽${op.slot}`:"";
+    const dirStr=op.dir?`朝向:${op.dir}`:"";
+    const detailParts=[slotStr,coordStr,dirStr,op.note].filter(Boolean).join(" · ");
+
+    row.innerHTML=`
+      <span class="op-f">f=${op.f}</span>
+      <span class="rem-sec">${secStr}</span>
+      <span class="op-desc">${esc(detailParts||'(无说明)')}</span>
+      <span class="op-type ${typeCls}">${typeLabel}</span>
+    `;
+    box.appendChild(row);
+  });
+}
+
+async function pollReplayerState(){
+  try{
+    const s=await api("/api/replayer/state");
+    $("repCurFrame").textContent=s.frames!=null?s.frames:"--";
+    const stBadge=$("repStatus");
+    stBadge.className="stage "+(s.status==="running"?"creep":(s.status==="done"?"notify":(s.status==="error"?"failed":"idle")));
+    const statusMap={
+      idle:"空闲待机",
+      running:"战斗复现中...",
+      done:"复现完成",
+      error:"复现异常",
+      stopped:"已手动停止"
+    };
+    stBadge.textContent=statusMap[s.status]||s.status;
+    renderRepLog(s.events||[]);
+  }catch(e){}
+
+let lastRepLogHtml="";
+function renderRepLog(events){
+  const card=$("repLogCard");
+  const box=$("repLog");
+  if(!events||!events.length){
+    card.style.display="none";
+    return;
+  }
+  card.style.display="block";
+  const html=events.map(e=>`<div>${esc(e)}</div>`).join("");
+  if(html!==lastRepLogHtml){
+    box.innerHTML=html;
+    lastRepLogHtml=html;
+    box.scrollTop=box.scrollHeight;
+  }
+}
+
+  try{
+    const rec=await api("/api/recorder/state");
+    const badge=$("recStatusBadge");
+    const streamBox=$("recLiveStream");
+    if(rec.is_recording){
+      badge.className="stage armed";
+      badge.textContent=`录制中 (${rec.recorded_ops_count} 条)`;
+      $("btnStartRecord").style.display="none";
+      $("btnStopRecord").style.display="inline-block";
+      streamBox.style.display="block";
+      $("recCountText").textContent=rec.recorded_ops_count;
+      if(rec.recorded_ops&&rec.recorded_ops.length>0){
+        const last=rec.recorded_ops[rec.recorded_ops.length-1];
+        const dirStr=last.dir?` 朝向:${last.dir}`:"";
+        $("recLastOpText").textContent=`最新捕获: #${last.seq} f=${last.f} [${last.op.toUpperCase()}] 格子=(${last.col},${last.row}) 卡槽=${last.slot||'-'}${dirStr}`;
+      } else if(rec.status_log){
+        $("recLastOpText").textContent = rec.status_log;
+      }
+    }else{
+      badge.className="stage idle";
+      badge.textContent="未录制";
+      $("btnStartRecord").style.display="inline-block";
+      $("btnStopRecord").style.display="none";
+    }
+  }catch(e){}
+}
+
+// ---- 关卡模糊搜索与智能联想 ----
+let searchDebounceTimer = null;
+const levelInput = $("recLevelInput");
+const searchDropdown = $("recSearchDropdown");
+
+async function doStageSearch(){
+  const q = levelInput.value.trim();
+  try{
+    const res = await api(`/api/stages/search?q=${encodeURIComponent(q)}`);
+    const results = res.results || [];
+    if(results.length === 0){
+      searchDropdown.innerHTML = `<div style="padding:10px 14px;color:var(--muted);font-size:12.5px">未找到匹配关卡，可直接使用输入内容</div>`;
+      searchDropdown.style.display = "block";
+      return;
+    }
+    searchDropdown.innerHTML = "";
+    results.forEach(item => {
+      const row = document.createElement("div");
+      row.style.cssText = "padding:8px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;transition:.15s";
+      row.innerHTML = `
+        <span style="font-weight:600;color:var(--ink)">${esc(item.code)} <small style="font-weight:normal;color:var(--accent-deep)">${esc(item.name)}</small></span>
+        <span style="font-size:11px;color:var(--muted)">${esc(item.level_id)}</span>
+      `;
+      row.onmouseenter = () => row.style.background = "var(--accent-soft)";
+      row.onmouseleave = () => row.style.background = "transparent";
+      row.onclick = () => {
+        levelInput.value = item.name ? `${item.code} (${item.name})` : item.code;
+        levelInput.dataset.levelId = item.level_id;
+        searchDropdown.style.display = "none";
+        toast(`已选定关卡: [${item.code}] ${item.name}`);
+      };
+      searchDropdown.appendChild(row);
+    });
+    searchDropdown.style.display = "block";
+  }catch(e){}
+}
+
+levelInput.oninput = () => {
+  levelInput.dataset.levelId = "";
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(doStageSearch, 120);
+};
+
+levelInput.onfocus = () => {
+  doStageSearch();
+};
+
+document.addEventListener("click", (e) => {
+  if(!levelInput.contains(e.target) && !searchDropdown.contains(e.target)){
+    searchDropdown.style.display = "none";
+  }
+});
+
+$("btnStartRecord").onclick=async()=>{
+  const lvl=levelInput.dataset.levelId || levelInput.value.trim() || "obt/main/level_main_01-07";
+  try{
+    const res=await api("/api/recorder/start",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({level_id:lvl})
+    });
+    toast(res.message);
+    $("recLiveStream").style.display="block";
+    $("recCountText").textContent="0";
+    $("recLastOpText").textContent="录轴已就绪，请在模拟器中操作...";
+  }catch(e){toast(e.message)}
+};
+
+$("btnStopRecord").onclick=async()=>{
+  try{
+    const res=await api("/api/recorder/stop",{method:"POST"});
+    $("btnStartRecord").style.display="inline-block";
+    $("btnStopRecord").style.display="none";
+    $("recStatusBadge").className="stage idle";
+    $("recStatusBadge").textContent="未录制";
+    if(res.count>0){
+      toast(`录轴完成！共录制 ${res.count} 条操作`);
+    } else {
+      toast("已停止录轴 (未记录到操作，空轴已自动清理)");
+    }
+    await loadReplayerAxes();
+    if(res.axis_path){
+      $("repAxisSelect").value=res.axis_path;
+      await loadSelectedAxis();
+    }
+  }catch(e){toast(e.message)}
+};
+
+$("btnRefreshAxes").onclick=loadReplayerAxes;
+$("repAxisSelect").onchange=loadSelectedAxis;
+
+$("btnStartReplay").onclick=async()=>{
+  const p=$("repAxisSelect").value;
+  if(!p) return toast("请先选择一个要复现的轴文件");
+  const speed=parseInt($("repSpeed").value)||1;
+  const isDry=$("repDryRun").checked;
+  toast("正在启动战斗复现...");
+  try{
+    const res=await api("/api/replayer/start",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({path:p,speed:speed,dry:isDry,from_frame:0})
+    });
+    toast(res.message);
+  }catch(e){toast(e.message)}
+};
+
+$("btnStopReplay").onclick=async()=>{
+  try{
+    const res=await api("/api/replayer/stop",{method:"POST"});
+    toast(res.message);
+  }catch(e){toast(e.message)}
+};
+
+setInterval(pollReplayerState, 600);
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+# 字节码
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 本机环境与打包产物
+.venv/
+.qoder/
+python312/
+vendor/
+releases/
+build/
+*.exe
+*.zip
+*.7z
+*.nupkg
+
+# 第三方代码和素材。地图 json 自己放到 resource/map/，不进仓库
+asst/
+replayer_maa_bridge.py
+resource/**
+!resource/map/
+!resource/map/.gitkeep
+
+# 别的项目、旧实验、对局记录
+legacy_timer_reviver/
+reviver_for_barruler/
+axis/
+rec/
+levels/
+prts-plus/
+diagnostics/
+mouse_diag/
+_previews/
+
+# 本机校准和运行日志
+calib/
+*.log
+_t.txt
+state_log.txt
+
+# 杂项
+527f8b6910387dca8cae704e2a634bf9.png
+_list_windows.py
